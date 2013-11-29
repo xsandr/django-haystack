@@ -212,6 +212,10 @@ class EdgeNgramField(NgramField):
     field_type = 'edge_ngram'
 
 
+class KeywordField(NgramField):
+    field_type = 'keyword'
+
+
 class IntegerField(SearchField):
     field_type = 'integer'
 

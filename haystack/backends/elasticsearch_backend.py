@@ -48,6 +48,15 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
         'settings': {
             "analysis": {
                 "analyzer": {
+                    "str_search_analyzer": {
+                        "type": "custom",
+                        "tokenizer": "keyword",
+                        "filter": ["lowercase"]
+                    },
+                    "str_index_analyzer": {
+                        "tokenizer": "keyword",
+                        "filter": ["lowercase", "haystack_ngram"],
+                    },
                     "ngram_analyzer": {
                         "type": "custom",
                         "tokenizer": "lowercase",
@@ -496,9 +505,9 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
             raw_results = {}
 
         return self._process_results(raw_results,
-            highlight=kwargs.get('highlight'),
-            result_class=kwargs.get('result_class', SearchResult),
-            distance_point=kwargs.get('distance_point'), geo_sort=geo_sort)
+                                     highlight=kwargs.get('highlight'),
+                                     result_class=kwargs.get('result_class', SearchResult),
+                                     distance_point=kwargs.get('distance_point'), geo_sort=geo_sort)
 
     def more_like_this(self, model_instance, additional_query_string=None,
                        start_offset=0, end_offset=None, models=None,
@@ -645,6 +654,12 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                 field_mapping['analyzer'] = "ngram_analyzer"
             elif field_class.field_type == 'edge_ngram':
                 field_mapping['analyzer'] = "edgengram_analyzer"
+            elif field_class.field_type == 'keyword':
+                field_mapping = {
+                    'type': 'string',
+                    'search_analyzer': "str_search_analyzer",
+                    'index_analyzer': 'str_index_analyzer',
+                }
             elif field_class.field_type == 'location':
                 field_mapping['type'] = 'geo_point'
 
@@ -659,10 +674,10 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
             if field_class.indexed is False or hasattr(field_class, 'facet_for'):
                 field_mapping['index'] = 'not_analyzed'
 
-            if field_mapping['type'] == 'string' and field_class.indexed:
+            if field_mapping['type'] == 'string' and field_class.indexed and field_class.field_type != 'keyword':
                 field_mapping["term_vector"] = "with_positions_offsets"
 
-                if not hasattr(field_class, 'facet_for') and not field_class.field_type in('ngram', 'edge_ngram'):
+                if not hasattr(field_class, 'facet_for') and not field_class.field_type in('ngram', 'edge_ngram', 'keyword'):
                     field_mapping["analyzer"] = "snowball"
 
             mapping[field_class.index_fieldname] = field_mapping
@@ -728,7 +743,6 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
             pass
 
         return value
-
 
 
 # Sucks that this is almost an exact copy of what's in the Solr backend,
