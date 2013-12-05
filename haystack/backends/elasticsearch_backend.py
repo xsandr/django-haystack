@@ -85,12 +85,12 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                     "haystack_ngram": {
                         "type": "nGram",
                         "min_gram": 3,
-                        "max_gram": 15
+                        "max_gram": 30
                     },
                     "haystack_edgengram": {
                         "type": "edgeNGram",
                         "min_gram": 2,
-                        "max_gram": 15
+                        "max_gram": 30
                     }
                 }
             }
